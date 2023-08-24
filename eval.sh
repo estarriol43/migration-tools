@@ -35,11 +35,11 @@ function boot_vm() {
     log_msg "Booting VM on $1"
 
     local ret=$( { ssh $(whoami)@$1 << EOF
-    sudo /srv/vm/net.sh; sudo nohup $2
+    sudo /proj/ntucsie-PG0/estarriol/some-tutorials/files/migration/net.sh; sudo nohup $2
 EOF
     } 2>&1 > /dev/null)
 
-    #err_msg "$ret"
+    err_msg "$ret"
 
     # We have to check for error manually to decide return value
     local err="Failed to retrieve host CPU features"
@@ -57,7 +57,7 @@ EOF
         err_msg "$err"
         return $ABORT
     fi
-    local err="qemu-system-aarch64:"
+    local err="qemu-system-x86_64:"
     if echo "$ret" | grep "$err"; then 
         local out=$(echo "$ret" | grep "$err")
         err_msg "$out"
@@ -233,16 +233,17 @@ function do_migration_eval() {
 
 # reboot_m400(ip)
 function reboot_m400() {
-    log_msg "Rebooting m400"
-    local ret=$( { ssh $(whoami)@$1 << EOF
-        sudo reboot $2
-EOF
-    } 2>&1 > /dev/null)
-    local expected="Connection to $1 closed by remote host."
-    if ! echo "$ret" | grep -q "$expected"; then
-        err_msg "Failed to reboot m400 at $1"
-        exit 1
-    fi
+#     log_msg "Rebooting m400"
+#     local ret=$( { ssh $(whoami)@$1 << EOF
+#         sudo reboot $2
+# EOF
+#     } 2>&1 > /dev/null)
+#     local expected="Connection to $1 closed by remote host."
+#     if ! echo "$ret" | grep -q "$expected"; then
+#         err_msg "Failed to reboot m400 at $1"
+#         exit 1
+#     fi
+    return 0
 }
 
 # wait_for(ip)
@@ -310,7 +311,7 @@ while [[ $i -lt $ROUNDS ]]; do
             reboot_m400 $DST_IP
             wait_for $SRC_IP
             wait_for $DST_IP
-	    sleep 20s
+            sleep 20s
             ;;
         $ABORT)
             exit 1
