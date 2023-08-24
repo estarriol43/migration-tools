@@ -9,6 +9,20 @@ BCYAN='\033[1;36m'
 BRED='\033[1;31m'
 NC='\033[0m'
 
+function trap_ctrlc () {
+    # perform cleanup here
+    err_msg "Ctrl-C caught...performing clean up"
+
+    err_msg "Doing cleanup"
+
+    clean_up $SRC_IP
+    clean_up $DST_IP
+
+    # exit shell script with error code 2
+    # if omitted, shell script will continue execution
+    exit 2
+}
+
 function log_msg() {
     echo -e "${BCYAN}$1${NC}" >&2
 }
@@ -268,6 +282,7 @@ function result() {
 # * Main *
 source $1
 mkdir $OUTPUT_DIR
+trap "trap_ctrlc" 2
 
 i=0
 while [[ $i -lt $ROUNDS ]]; do
