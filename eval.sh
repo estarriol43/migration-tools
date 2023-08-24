@@ -188,6 +188,11 @@ function do_migration_eval() {
         err_msg "Failed to setup benchmark"
         return $ret
     fi
+    pre_migration; ret=$?
+    if [[ $ret != 0 ]] ; then
+        err_msg "pre_migration() failed"
+        return $ret
+    fi
     start_migration; ret=$?
     if [[ $ret != 0 ]] ; then
         err_msg "Failed to start migration"
