@@ -1,7 +1,7 @@
 ROUNDS=10
 
 # directory to store output file for each round
-OUTPUT_DIR="./x86-pseudo-idle-multifd4"
+OUTPUT_DIR="./x86-mainline-idle-postcopy"
 # skip round when output file exists in OUTPUT_DIR
 USE_PREV_FILE="false"
 # file for final statistic result of all rounds
@@ -51,9 +51,9 @@ DST_QEMU_CMD="$QEMU_CMD \
 MIGRATION_PROPERTIES=(
     "migrate_set_parameter downtime-limit 100"
     "migrate_set_parameter max-bandwidth 10g"
-    "migrate_set_parameter multifd-channels 4"
-    "migrate_set_capability multifd on"
-    #"migrate_set_capability postcopy-ram off"
+    # "migrate_set_parameter multifd-channels 1"
+    # "migrate_set_capability multifd on"
+    "migrate_set_capability postcopy-ram on"
 )
 MIGRATION_TIMEOUT=300
 # Fields to record and count for
@@ -103,9 +103,7 @@ function benchmark_setup() {
 
 function pre_migration() {
     log_msg "pre_migration()"
-    log_msg "Setting up SEV"
-    python3 /proj/ntucsie-PG0/estarriol/some-tutorials/files/migration/sev-setup.py \
-        --sev $SEV_CERT
+    python3 sev-setup.py --sev /proj/ntucsie-PG0/estarriol/ask_ark_rome.cert
     return $?
 }
 

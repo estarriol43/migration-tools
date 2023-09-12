@@ -1,7 +1,7 @@
 ROUNDS=10
 
 # directory to store output file for each round
-OUTPUT_DIR="./x86-pseudo-idle-multifd4"
+OUTPUT_DIR="./x86-mainline-idle-multifd4"
 # skip round when output file exists in OUTPUT_DIR
 USE_PREV_FILE="false"
 # file for final statistic result of all rounds

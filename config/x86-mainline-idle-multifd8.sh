@@ -1,9 +1,9 @@
 ROUNDS=10
 
 # directory to store output file for each round
-OUTPUT_DIR="./x86-pseudo-idle-multifd4"
+OUTPUT_DIR="./x86-mainline-idle-multifd8"
 # skip round when output file exists in OUTPUT_DIR
-USE_PREV_FILE="false"
+USE_PREV_FILE="true"
 # file for final statistic result of all rounds
 OUTPUT_FILE="$OUTPUT_DIR/eval_result.txt"
 
@@ -51,7 +51,7 @@ DST_QEMU_CMD="$QEMU_CMD \
 MIGRATION_PROPERTIES=(
     "migrate_set_parameter downtime-limit 100"
     "migrate_set_parameter max-bandwidth 10g"
-    "migrate_set_parameter multifd-channels 4"
+    "migrate_set_parameter multifd-channels 8"
     "migrate_set_capability multifd on"
     #"migrate_set_capability postcopy-ram off"
 )
