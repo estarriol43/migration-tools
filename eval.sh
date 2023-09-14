@@ -115,8 +115,11 @@ function qemu_migration_info_get_field() {
 
 function migration_is_completed() {
     local info=$(qemu_migration_info_fetch)
-    local status=$(qemu_migration_info_get_field "$info" "Migration status")
+    local status=$(qemu_migration_info_get_field "$info" "Migration status" | cut -d " " -f 1)
     log_msg "Migration status: $status"
+    if [[ $status == "failed" ]]; then
+        return $ABORT
+    fi
     if [[ $status != "completed" ]]; then
         return $RETRY
     fi
@@ -204,13 +207,19 @@ function do_migration_eval() {
         return $ret
     fi
     local elapsed=0
-    while ! migration_is_completed; do
-        if [[ $elapsed -gt $MIGRATION_TIMEOUT ]]; then
-            err_msg "Migration timout"
+    migration_is_completed; ret=$?
+    while [[ $ret != 0 ]]; do
+        if [[ $ret == $ABORT ]]; then
             return $RETRY
-        fi 
-        sleep 10s
-        (( elapsed += 10 ))
+        elif [[ $ret == $RETRY ]]; then
+            if [[ $elapsed -gt $MIGRATION_TIMEOUT ]]; then
+                err_msg "Migration timout"
+                return $RETRY
+            fi
+        fi
+        sleep 5s
+        (( elapsed += 5 ))
+        migration_is_completed; ret=$?
     done
     qemu_migration_info_save "$OUTPUT_DIR/$1"; ret=$?
     if [[ $ret != 0 ]] ; then

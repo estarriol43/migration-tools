@@ -76,7 +76,7 @@ function setup_vm_env() {
     if ! sudo cp $VM_DISK_IMAGE $NFS_PATH; then
         err_msg "Cannot setup disk image"
         return $RETRY
-    fi 
+    fi
     return 0
 }
 
