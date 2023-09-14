@@ -162,6 +162,7 @@ function clean_up() {
 }
 
 function do_migration_eval() {
+    log_msg "Migration $1"
 
     setup_vm_env; ret=$?
     if [[ $ret != 0 ]] ; then
@@ -240,6 +241,49 @@ function do_migration_eval() {
     fi
 }
 
+function search_downtime() {
+    local upper=1500
+    local lower=10
+    local downtime=100
+    local success=0
+    MIGRATION_PROPERTIES[0]="migrate_set_parameter downtime-limit $downtime"
+    do_migration_eval "test_${downtime}"
+
+    while true; do
+        case $? in
+            $RETRY | $ABORT | $NEED_REBOOT)
+                clean_up $SRC_IP
+                clean_up $DST_IP
+                if [[ $success -gt -2 ]]; then
+                    (( success -= 1 ))
+                else
+                    (( success = 0))
+                    (( lower = downtime))
+                    (( downtime = (upper + downtime) / 2 ))
+                fi
+                ;;
+            *)
+                clean_up $SRC_IP
+                clean_up $DST_IP
+                if [[ $success -lt 1 ]]; then
+                    (( success += 1 ))
+                else
+                    (( success = 0))
+                    (( upper = downtime))
+                    (( downtime = (lower + downtime) / 2 ))
+                fi
+                ;;
+        esac
+
+        if ((upper - lower < 25 )); then
+            break
+        fi
+
+        MIGRATION_PROPERTIES[0]="migrate_set_parameter downtime-limit $downtime"
+        do_migration_eval "test_${downtime}"
+    done
+}
+
 # reboot_m400(ip)
 function reboot_m400() {
 #     log_msg "Rebooting m400"
@@ -298,6 +342,9 @@ function result() {
 source $1
 mkdir $OUTPUT_DIR
 trap "trap_ctrlc" 2
+
+log_msg "Search downtime"
+search_downtime
 
 i=0
 while [[ $i -lt $ROUNDS ]]; do
