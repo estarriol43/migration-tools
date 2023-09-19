@@ -116,7 +116,12 @@ function qemu_migration_info_get_field() {
 function migration_is_completed() {
     local info=$(qemu_migration_info_fetch)
     local status=$(qemu_migration_info_get_field "$info" "Migration status" | cut -d " " -f 1)
+    local cnt=$(qemu_migration_info_get_field "$info" "dirty sync count" | cut -d " " -f 1)
     log_msg "Migration status: $status"
+    log_msg "$info"
+    if [[ $cnt > 20 ]]; then
+        return $RETRY
+    fi
     if [[ $status == "failed" ]]; then
         return $ABORT
     fi
@@ -137,6 +142,7 @@ function qemu_migration_info_save() {
         log_msg "$field: $val"
     done
     echo "$info" > $1
+    echo "${MIGRATION_PROPERTIES[0]}" >> $1
     dos2unix $1
     return 0
 }
@@ -211,9 +217,11 @@ function do_migration_eval() {
     migration_is_completed; ret=$?
     while [[ $ret != 0 ]]; do
         if [[ $ret == $ABORT ]]; then
+            benchmark_clean_up $1; ret=$?
             return $RETRY
         elif [[ $ret == $RETRY ]]; then
             if [[ $elapsed -gt $MIGRATION_TIMEOUT ]]; then
+                benchmark_clean_up $1; ret=$?
                 err_msg "Migration timout"
                 return $RETRY
             fi
