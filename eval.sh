@@ -242,19 +242,23 @@ function do_migration_eval() {
 }
 
 function search_downtime() {
-    local upper=1500
-    local lower=10
-    local downtime=100
+    if [[ $POSTCOPY == "y" ]]; then
+        err_msg "postcopy, don't search"
+        return
+    fi
+    local upper=14000
+    local lower=1000
+    local downtime=6000
     local success=0
-    MIGRATION_PROPERTIES[0]="migrate_set_parameter downtime-limit $downtime"
-    do_migration_eval "test_${downtime}"
-
     while true; do
+        MIGRATION_PROPERTIES[0]="migrate_set_parameter downtime-limit $downtime"
+        do_migration_eval "test_${downtime}"
         case $? in
             $RETRY | $ABORT | $NEED_REBOOT)
+                err_msg "downtime: $downtime failed"
                 clean_up $SRC_IP
                 clean_up $DST_IP
-                if [[ $success -gt -2 ]]; then
+                if [[ $success -gt 0 ]]; then
                     (( success -= 1 ))
                 else
                     (( success = 0))
@@ -263,9 +267,10 @@ function search_downtime() {
                 fi
                 ;;
             *)
+                err_msg "downtime: $downtime passed"
                 clean_up $SRC_IP
                 clean_up $DST_IP
-                if [[ $success -lt 1 ]]; then
+                if [[ $success -lt 0 ]]; then
                     (( success += 1 ))
                 else
                     (( success = 0))
@@ -275,12 +280,9 @@ function search_downtime() {
                 ;;
         esac
 
-        if ((upper - lower < 25 )); then
+        if ((upper - lower < 200 )); then
             break
         fi
-
-        MIGRATION_PROPERTIES[0]="migrate_set_parameter downtime-limit $downtime"
-        do_migration_eval "test_${downtime}"
     done
 }
 
