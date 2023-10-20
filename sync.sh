@@ -10,11 +10,12 @@ NFS_FILE="
 
 MYDATA_FILE="
     /mydata/qemu-sev
+    /mydata/qemu
 "
 
 for file in $NFS_FILE
 do
-    rsync --progress -avrzh $file /proj/ntucsie-PG0/estarriol/
+    rsync --progress -avrzh $file /mydata/nfs/
 done
 
 for file in $MYDATA_FILE
@@ -23,3 +24,4 @@ do
     rsync --progress -avrzh $file 10.10.1.2:/mydata
 done
 
+sudo chmod 777 /mydata/nfs/*

@@ -1,5 +1,7 @@
 #! /bin/bash
 
+# set -x
+
 NEED_REBOOT=1
 RETRY=2
 ABORT=3
@@ -88,6 +90,12 @@ function start_migration() {
             return $RETRY
         fi
     done
+
+    local cmd="migrate_incoming tcp:$DST_IP:$MIGRATION_PORT"
+    if ! qemu_monitor_send $DST_IP $MONITOR_PORT "$cmd"; then
+        return $RETRY
+    fi
+
     local cmd="migrate -d tcp:$DST_IP:$MIGRATION_PORT"
     if ! qemu_monitor_send $SRC_IP $MONITOR_PORT "$cmd"; then
         return $RETRY
@@ -117,14 +125,21 @@ function migration_is_completed() {
     local info=$(qemu_migration_info_fetch)
     local status=$(qemu_migration_info_get_field "$info" "Migration status" | cut -d " " -f 1)
     local cnt=$(qemu_migration_info_get_field "$info" "dirty sync count" | cut -d " " -f 1)
-    log_msg "Migration status: $status"
-    log_msg "$info"
-    if [[ $cnt > 20 ]]; then
-        return $RETRY
+    local transferred=$(qemu_migration_info_get_field "$info" "transferred ram" | cut -d " " -f 1)
+    local remaining=$(qemu_migration_info_get_field "$info" "remaining ram" | cut -d " " -f 1)
+    local expected=$(qemu_migration_info_get_field "$info" "expected downtime" | cut -d " " -f 1)
+    local total=$(qemu_migration_info_get_field "$info" "total time" | cut -d " " -f 1)
+    log_msg "status: $status"
+    log_msg "count: $cnt, transferred: $transferred, remaining: $remaining, expected: $expected, total: $total"
+    if [[ $cnt -gt 80 ]]; then
+        return $ABORT
     fi
     if [[ $status == "failed" ]]; then
         return $ABORT
     fi
+    # if [[ $status == "" ]]; then
+    #     return $ABORT
+    # fi
     if [[ $status != "completed" ]]; then
         return $RETRY
     fi
@@ -255,8 +270,8 @@ function search_downtime() {
         return
     fi
     local upper=14000
-    local lower=1000
-    local downtime=6000
+    local lower=300
+    local downtime=1000
     local success=0
     while true; do
         MIGRATION_PROPERTIES[0]="migrate_set_parameter downtime-limit $downtime"
@@ -353,8 +368,8 @@ source $1
 mkdir $OUTPUT_DIR
 trap "trap_ctrlc" 2
 
-log_msg "Search downtime"
-search_downtime
+# log_msg "Search downtime"
+# search_downtime
 
 i=0
 while [[ $i -lt $ROUNDS ]]; do
